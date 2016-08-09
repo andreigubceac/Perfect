@@ -36,9 +36,7 @@ class MySQLConnector : DataBaseConnectorProtocol {
             Log.info(message : "Failure connecting to data server \(_socket)")
             return false
         }
-        defer {
-            _mySql.close()
-        }
+
         guard _mySql.selectDatabase(named: _database) else {
             Log.info(message: "Failure: \(_mySql.errorCode()) \(_mySql.errorMessage())")
             return false
@@ -51,13 +49,23 @@ class MySQLConnector : DataBaseConnectorProtocol {
         _mySql.close()
     }
     
-    func query(q : String) throws {
-        if _mySql.query(statement: q) == false {
-            throw NSError(domain: String(DBConnector.self), code: 500, userInfo: [NSLocalizedDescriptionKey : "Invalid query"])
+    func query(q : String) throws -> MySQLStmt {
+        let sql = MySQLStmt(_mySql)
+        if sql.prepare(statement: q) == false {
+            throw NSError(domain: String(DBConnector.self), code: 500, userInfo: [NSLocalizedDescriptionKey : "Invalid query statement : \(q)"])
         }
+        else {
+            if sql.execute() == false {
+                throw NSError(domain: String(DBConnector.self), code: 500, userInfo: [NSLocalizedDescriptionKey : "Invalid query exection : \(q)"])
+            }
+        }
+        return sql
     }
     
-    func fetchResult() -> MySQL.Results? {
-        return _mySql.storeResults()
+}
+
+extension MySQLConnector {
+    var dataBase : MySQL {
+        return _mySql
     }
 }
