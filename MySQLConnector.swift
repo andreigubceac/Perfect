@@ -11,7 +11,7 @@ import MySQL
 
 class MySQLConnector : DataBaseConnectorProtocol {
     
-    private let _mySql = MySQL()
+    internal let _mySql = MySQL()
     
     private var _userName   : String!
     private var _passWord   : String!
@@ -49,14 +49,14 @@ class MySQLConnector : DataBaseConnectorProtocol {
         _mySql.close()
     }
     
-    func query(q : String) throws -> MySQLStmt {
+    func query(_ q : String) throws -> MySQLStmt {
         let sql = MySQLStmt(_mySql)
         if sql.prepare(statement: q) == false {
-            throw NSError(domain: String(DBConnector.self), code: 500, userInfo: [NSLocalizedDescriptionKey : "Invalid query statement : \(q)"])
+            throw NSError(domain: String(describing:DBConnector.self), code: 500, userInfo: [AnyHashable(NSLocalizedDescriptionKey) : "Invalid query statement : \(q)"])
         }
         else {
             if sql.execute() == false {
-                throw NSError(domain: String(DBConnector.self), code: 500, userInfo: [NSLocalizedDescriptionKey : "Invalid query exection : \(q)"])
+                throw NSError(domain: String(describing: DBConnector.self), code: 500, userInfo: [AnyHashable(NSLocalizedDescriptionKey) : "Invalid query exection : \(q)"])
             }
         }
         return sql

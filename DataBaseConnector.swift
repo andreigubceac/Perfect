@@ -12,7 +12,7 @@ protocol DataBaseRecord {
     var db_table : String { get }
     var db_identifierKey : String { get }
     var db_keys : Array<String> { get }
-    subscript(key: String) -> AnyObject? { get set }
+    subscript(key: String) -> Any? { get set }
 }
 
 extension DataBaseRecord {
@@ -49,19 +49,19 @@ protocol DataBaseConnectorProtocol  {
 
 extension DataBaseConnectorProtocol {
     
-    func insertRecordQuery(r : DataBaseRecord) -> String {
+    func insertRecordQuery(_ r : DataBaseRecord) -> String {
         let q = "INSERT INTO \(r.db_table) \(r.db_insertKeyValues());"
         return q
     }
     
-    func updateRecordQuery(r : DataBaseRecord) -> String {
+    func updateRecordQuery(_ r : DataBaseRecord) -> String {
         let q = "UPDATE \(r.db_table) " +
                 "SET \(r.db_updateKeyValue()) " +
                 "WHERE \(r.db_identifierKey) = \(r[r.db_identifierKey]!);"
         return q
     }
     
-    func deleteRecordQuery(r : DataBaseRecord) -> String {
+    func deleteRecordQuery(_ r : DataBaseRecord) -> String {
         let q = "DELETE \(r.db_table) " +
                 "WHERE \(r.db_identifierKey) = \(r[r.db_identifierKey]);"
         return q
