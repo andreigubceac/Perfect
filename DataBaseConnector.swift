@@ -9,9 +9,10 @@ import Foundation
 
 protocol DataBaseRecord {
     
-    var db_table : String { get }
-    var db_identifierKey : String { get }
-    var db_keys : Array<String> { get }
+    static var db_table : String { get }
+    static var db_identifierKey : String { get }
+    static var db_keys : Array<String> { get }
+    
     subscript(key: String) -> Any? { get set }
 }
 
@@ -20,7 +21,7 @@ extension DataBaseRecord {
     func db_insertKeyValues() -> String {
         var columns = ""
         var values = ""
-        for key in db_keys {
+        for key in type(of : self).db_keys {
             if let value = self[key] {
                 columns += "\(key),"
                 values += "'\(value)',"
@@ -33,8 +34,8 @@ extension DataBaseRecord {
     
     func db_updateKeyValue() -> String {
         var q = ""
-        for key in db_keys {
-            if let value = self[key] , key != db_identifierKey {
+        for key in type(of : self).db_keys {
+            if let value = self[key] , key != type(of : self).db_identifierKey {
                 q += "\(key)='\(value)',"
             }
         }
@@ -50,20 +51,27 @@ protocol DataBaseConnectorProtocol  {
 extension DataBaseConnectorProtocol {
     
     func insertRecordQuery(_ r : DataBaseRecord) -> String {
-        let q = "INSERT INTO \(r.db_table) \(r.db_insertKeyValues());"
+        let q = "INSERT INTO \(type(of : r).db_table) \(r.db_insertKeyValues());"
         return q
     }
     
     func updateRecordQuery(_ r : DataBaseRecord) -> String {
-        let q = "UPDATE \(r.db_table) " +
+        let q = "UPDATE \(type(of : r).db_table) " +
                 "SET \(r.db_updateKeyValue()) " +
-                "WHERE \(r.db_identifierKey) = \(r[r.db_identifierKey]!);"
+                "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]!);"
+        return q
+    }
+    
+    func selectRecordQuery(_ r : DataBaseRecord) -> String {
+        let q = "SELECT * " +
+                "FROM \(type(of : r).db_table) " +
+                "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]!);"
         return q
     }
     
     func deleteRecordQuery(_ r : DataBaseRecord) -> String {
-        let q = "DELETE \(r.db_table) " +
-                "WHERE \(r.db_identifierKey) = \(r[r.db_identifierKey]);"
+        let q = "DELETE FROM \(type(of : r).db_table) " +
+                "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]);"
         return q
     }
     
