@@ -42,6 +42,17 @@ extension DataBaseRecord {
         q = q.substring(to: q.index(q.endIndex, offsetBy: -1))
         return q
     }
+    
+    mutating func updateValues(values : Array<Any>) {
+        guard values.count > 0 else {
+            return
+        }
+        var index = 0
+        for key in type(of : self).db_keys {
+            self[key] = values[index]
+            index += 1
+        }
+    }
 }
 
 protocol DataBaseConnectorProtocol  {
