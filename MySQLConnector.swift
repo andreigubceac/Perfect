@@ -49,8 +49,25 @@ class MySQLConnector : DataBaseConnectorProtocol {
         _db.close()
     }
     
-    func query(_ q : String) throws -> MySQLStmt {
+    func query(_ q : String, bindedParams : [AnyHashable]? = nil) throws -> MySQLStmt {
         let sql = MySQLStmt(_db)
+        if let params = bindedParams {
+            _ = params.flatMap { $0 }.map {
+                debugPrint("* Binding param \($0) in query \(q)")
+                if $0 is String {
+                    sql.bindParam($0 as! String)
+                }
+                else if $0 is Int {
+                    sql.bindParam($0 as! Int)
+                }
+                else if $0 is Double {
+                    sql.bindParam($0 as! Double)
+                }
+                else if $0 is UInt64 {
+                    sql.bindParam($0 as! UInt64)
+                }
+            }
+        }
         if sql.prepare(statement: q) == false {
             throw NSError(domain: String(describing:DataBaseConnectorProtocol.self), code: Int(sql.errorCode()),
                           userInfo: [AnyHashable(NSLocalizedDescriptionKey) : sql.errorMessage()])
@@ -84,10 +101,11 @@ extension MySQLRecord {
         var columns = ""
         var values = ""
         for key in type(of : self).db_keys {
-            if let value = self[key] {
-                columns += "\(key),"
-                values += "'\(value)',"
+            if key == Self.db_identifierKey {
+                continue
             }
+            columns += "\(key),"
+            values += "?,"
         }
         columns = columns.substring(to: columns.index(columns.endIndex, offsetBy: -1))
         values = values.substring(to: values.index(values.endIndex, offsetBy: -1))
@@ -131,14 +149,14 @@ extension MySQLConnector {
     func updateRecordQuery(_ r : MySQLRecord) -> String {
         let q = "UPDATE \(type(of : r).db_table) " +
             "SET \(r.mysql_updateKeyValue()) " +
-        "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]!);"
+            "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]!);"
         return q
     }
     
     func selectRecordQuery(_ r : MySQLRecord) -> String {
         let q = "SELECT * " +
             "FROM \(type(of : r).db_table) " +
-        "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]!);"
+            "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]!);"
         return q
     }
     

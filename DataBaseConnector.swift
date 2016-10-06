@@ -21,3 +21,4 @@ protocol DataBaseConnectorProtocol  {
     func disconnect()
 }
 
+let recordNotFoundError = NSError(domain: String(describing : DataBaseConnectorProtocol.self), code: 404, userInfo: [AnyHashable(NSLocalizedDescriptionKey) : "Not found"])
