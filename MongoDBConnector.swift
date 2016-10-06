@@ -1,6 +1,5 @@
 //
 //  MongoDBConnector.swift
-//  House-Panic-Server
 //
 //  Created by Andrei Gubceac on 8/16/16.
 //
