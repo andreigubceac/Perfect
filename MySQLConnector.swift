@@ -51,9 +51,12 @@ class MySQLConnector : DataBaseConnectorProtocol {
     
     func query(_ q : String, bindedParams : [AnyHashable]? = nil) throws -> MySQLStmt {
         let sql = MySQLStmt(_db)
+        guard sql.prepare(statement: q) else {
+            throw NSError(domain: String(describing:DataBaseConnectorProtocol.self), code: Int(sql.errorCode()),
+                          userInfo: [AnyHashable(NSLocalizedDescriptionKey) : sql.errorMessage()])
+        }
         if let params = bindedParams {
             _ = params.flatMap { $0 }.map {
-                debugPrint("* Binding param \($0) in query \(q)")
                 if $0 is String {
                     sql.bindParam($0 as! String)
                 }
@@ -68,21 +71,15 @@ class MySQLConnector : DataBaseConnectorProtocol {
                 }
             }
         }
-        if sql.prepare(statement: q) == false {
-            throw NSError(domain: String(describing:DataBaseConnectorProtocol.self), code: Int(sql.errorCode()),
+        guard sql.execute() else {
+            throw NSError(domain: String(describing: DataBaseConnectorProtocol.self), code: Int(sql.errorCode()),
                           userInfo: [AnyHashable(NSLocalizedDescriptionKey) : sql.errorMessage()])
-        }
-        else {
-            if sql.execute() == false {
-                throw NSError(domain: String(describing: DataBaseConnectorProtocol.self), code: Int(sql.errorCode()),
-                              userInfo: [AnyHashable(NSLocalizedDescriptionKey) : sql.errorMessage()])
-            }
         }
         return sql
     }
     
     func fetch(_ q : String) throws -> MySQL.Results {
-        if _db.query(statement: q) == false {
+        guard _db.query(statement: q) else {
             throw NSError(domain: String(describing:DataBaseConnectorProtocol.self), code: Int(_db.errorCode()),
                           userInfo: [AnyHashable(NSLocalizedDescriptionKey) : _db.errorMessage()])
         }
@@ -92,15 +89,15 @@ class MySQLConnector : DataBaseConnectorProtocol {
 }
 
 /*MySQL*/
-protocol MySQLRecord : DataBaseRecord {
-}
+protocol MySQLRecord : DataBaseRecord {}
 
 extension MySQLRecord {
-    
-    func mysql_insertKeyValues() -> String {
+        
+    func mysql_insert(keys : [String]? = nil) -> String {
         var columns = ""
         var values = ""
-        for key in type(of : self).db_keys {
+        let keys = keys ?? type(of : self).db_keys
+        for key in keys {
             if key == Self.db_identifierKey {
                 continue
             }
@@ -112,27 +109,18 @@ extension MySQLRecord {
         return "(\(columns)) VALUES (\(values))"
     }
     
-    func mysql_updateKeyValue() -> String {
+    func mysql_update(keys : [String]? = nil) -> String {
         var q = ""
-        for key in type(of : self).db_keys {
-            if let value = self[key] , key != type(of : self).db_identifierKey {
-                q += "\(key)='\(value)',"
+        let keys = keys ?? type(of : self).db_keys
+        for key in keys {
+            if key != type(of : self).db_identifierKey {
+                q += "\(key)=?,"
             }
         }
         q = q.substring(to: q.index(q.endIndex, offsetBy: -1))
         return q
     }
     
-    mutating func updateValues(values : Array<Any>) {
-        guard values.count > 0 else {
-            return
-        }
-        var index = 0
-        for key in type(of : self).db_keys {
-            self[key] = values[index]
-            index += 1
-        }
-    }
 }
 
 /*MySQL*/
@@ -141,14 +129,14 @@ extension MySQLConnector {
         return _db
     }
     
-    func insertRecordQuery(_ r : MySQLRecord) -> String {
-        let q = "INSERT INTO \(type(of : r).db_table) \(r.mysql_insertKeyValues());"
+    func insertRecordQuery(_ r : MySQLRecord, bindParams : [String]? = nil) -> String {
+        let q = "INSERT INTO \(type(of : r).db_table) \(r.mysql_insert(keys: bindParams));"
         return q
     }
     
-    func updateRecordQuery(_ r : MySQLRecord) -> String {
+    func updateRecordQuery(_ r : MySQLRecord, bindParams : [String]? = nil) -> String {
         let q = "UPDATE \(type(of : r).db_table) " +
-            "SET \(r.mysql_updateKeyValue()) " +
+            "SET \(r.mysql_update(keys: bindParams)) " +
             "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]!);"
         return q
     }
@@ -161,9 +149,7 @@ extension MySQLConnector {
     }
     
     func deleteRecordQuery(_ r : MySQLRecord) -> String {
-        let q = "DELETE FROM \(type(of : r).db_table) " +
-        "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]);"
-        return q
+        return "DELETE FROM \(type(of : r).db_table) WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]);"
     }
     
 }
