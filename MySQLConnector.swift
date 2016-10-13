@@ -93,7 +93,7 @@ protocol MySQLRecord : DataBaseRecord {}
 
 extension MySQLRecord {
         
-    func mysql_insert(keys : [String]? = nil) -> String {
+    func mysql_insert(keys : [AnyHashable]? = nil) -> String {
         var columns = ""
         var values = ""
         let keys = keys ?? type(of : self).db_keys
@@ -109,7 +109,7 @@ extension MySQLRecord {
         return "(\(columns)) VALUES (\(values))"
     }
     
-    func mysql_update(keys : [String]? = nil) -> String {
+    func mysql_update(keys : [AnyHashable]? = nil) -> String {
         var q = ""
         let keys = keys ?? type(of : self).db_keys
         for key in keys {
@@ -141,8 +141,14 @@ extension MySQLConnector {
         return q
     }
     
-    func selectRecordQuery(_ r : MySQLRecord) -> String {
-        let q = "SELECT * " +
+    func selectRecordQuery(_ r : MySQLRecord, excludeParams: [String]? = nil) -> String {
+        var keys = type(of : r).db_keys as! Array<String>
+        for param in excludeParams ?? [] {
+            if let index = keys.index(of: param) {
+                keys.remove(at: index)
+            }
+        }
+        let q = "SELECT \(excludeParams != nil ? keys.joined(separator: ",") : "*") " +
             "FROM \(type(of : r).db_table) " +
             "WHERE \(type(of : r).db_identifierKey) = \(r[type(of : r).db_identifierKey]!);"
         return q

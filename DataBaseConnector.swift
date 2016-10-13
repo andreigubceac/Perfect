@@ -10,10 +10,22 @@ import Foundation
 protocol DataBaseRecord {
     
     static var db_table : String { get }
-    static var db_identifierKey : String { get }
-    static var db_keys : Array<String> { get }
+    static var db_identifierKey : AnyHashable { get }
+    static var db_keys : Array<AnyHashable> { get }
     
-    subscript(key: String) -> Any? { get set }
+    subscript(key: AnyHashable) -> Any? { get set }
+}
+
+extension DataBaseRecord {
+    func toDictionary(element: [Any]) -> Dictionary<AnyHashable, Any> {
+        var dict = Dictionary<AnyHashable, Any>()
+        for key in type(of : self).db_keys {
+            if let index = type(of : self).db_keys.index(of: key), index < element.count {
+                dict[key] = element[index]
+            }
+        }
+        return dict
+    }
 }
 
 protocol DataBaseConnectorProtocol  {
